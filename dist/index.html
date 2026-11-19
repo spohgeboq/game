@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ВЫСОТА 3400 — 3D Горнолыжный Фристайл</title>
+    <script type="module" crossorigin src="/assets/index-CCRM4iw7.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CJdbsSPW.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Subtle ski-goggle peripheral shading, sun glare & high-speed rush overlay -->
+      <div id="sun-glare" aria-hidden="true"></div>
+      <div id="speed-vignette" aria-hidden="true"></div>
+      <div id="impact-flash" aria-hidden="true"></div>
+
+      <!-- LIVE IN-GAME HUD -->
+      <div id="hud" class="hud hidden">
+        <!-- Top Center: Head-Look vs Ski-Direction Tape & Descent Progress -->
+        <div class="hud-top-center">
+          <div class="look-compass" title="Направление взгляда и лыж">
+            <span class="compass-edge">Л</span>
+            <div class="compass-track">
+              <div class="compass-center-tick"></div>
+              <div id="compass-ski-marker" class="compass-ski-marker"></div>
+              <div id="compass-gaze-bar" class="compass-gaze-bar"></div>
+            </div>
+            <span class="compass-edge">П</span>
+          </div>
+
+          <div class="descent-strip">
+            <span id="hud-altitude" class="tabular">3 400 м</span>
+            <div class="descent-bar">
+              <div id="hud-progress-fill" class="descent-bar-fill"></div>
+            </div>
+            <span id="hud-remaining" class="tabular">3 000 м</span>
+          </div>
+        </div>
+
+        <!-- Top Right: Minimal Instrument Controls -->
+        <div class="hud-top-right">
+          <button id="btn-hud-tricks" class="hud-chip" type="button" title="Список трюков (Tab)">
+            <span class="chip-key">Tab</span>
+            <span>Трюки</span>
+          </button>
+          <button id="btn-hud-weather" class="hud-chip" type="button" title="Освещение (1/2/3)">
+            <span class="chip-key">1-3</span>
+            <span id="hud-weather-label">Утро</span>
+          </button>
+          <button id="btn-hud-mute" class="hud-chip" type="button" title="Звук (M)">
+            <span class="chip-key">M</span>
+            <span id="hud-mute-label">Звук</span>
+          </button>
+          <button id="btn-hud-pause" class="hud-chip" type="button" title="Пауза (Esc)">
+            <span class="chip-key">Esc</span>
+            <span>Пауза</span>
+          </button>
+        </div>
+
+        <!-- Slide-out Trick Book / Combo Guide Drawer (Tab) -->
+        <aside id="trick-book" class="trick-book hidden">
+          <div class="tb-header">
+            <div>
+              <div class="tb-title">Книга трюков · 1 000+ комбо</div>
+              <div class="tb-sub">Комбинируй сальто, вращения, грэбы и баттеры в одну цепочку</div>
+            </div>
+            <span id="tb-discovered" class="tb-badge tabular">0 / 1 000+</span>
+          </div>
+
+          <div class="tb-section">
+            <div class="tb-sec-title">В воздухе — 3D вращения и сальто</div>
+            <div class="tb-grid">
+              <div><kbd>A</kbd><kbd>D</kbd> Спин 180°–1440°</div>
+              <div><kbd>S</kbd> Бэкфлип (x1/x2/x3)</div>
+              <div><kbd>W</kbd> Фронтфлип (x1/x2/x3)</div>
+              <div><kbd>W/S</kbd>+<kbd>A/D</kbd> Корк / Родео / Мисти / Био</div>
+            </div>
+          </div>
+
+          <div class="tb-section">
+            <div class="tb-sec-title">В воздухе — 10 грэбов (переключай в полёте!)</div>
+            <div class="tb-grid">
+              <div><kbd>Shift</kbd> / <kbd>ПКМ</kbd> Мьют-грэб</div>
+              <div><kbd>ЛКМ</kbd> Метод-грэб</div>
+              <div><kbd>F</kbd> Тейл-грэб</div>
+              <div><kbd>G</kbd> Джапан-эйр</div>
+              <div><kbd>Z</kbd> Ноуз-грэб</div>
+              <div><kbd>X</kbd> Спред-игл</div>
+              <div><kbd>V</kbd> Даффи (ножницы)</div>
+              <div><kbd>B</kbd> Казак</div>
+              <div><kbd>T</kbd> Шифти</div>
+              <div><kbd>Shift</kbd>+<kbd>Клик</kbd> Окто-грэб</div>
+            </div>
+          </div>
+
+          <div class="tb-section">
+            <div class="tb-sec-title">На снегу — Фристайл-трюки и связки</div>
+            <div class="tb-grid">
+              <div><kbd>F</kbd> Ноуз-баттер (+Space = Нолли)</div>
+              <div><kbd>Z</kbd> Тейл-мануал (+Space = Тейл-поп)</div>
+              <div><kbd>X</kbd> На одной лыже</div>
+              <div><kbd>V</kbd> Баттер-спин 360°</div>
+              <div><kbd>B</kbd> Слэш-реверт 180°</div>
+              <div><kbd>Ворота</kbd> Продлевают комбо!</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center Subtle Reticle & Callout Popups -->
+        <div id="gaze-dot" class="gaze-dot" aria-hidden="true"></div>
+        <div id="callout-stack" class="callout-stack" aria-live="polite"></div>
+
+        <!-- LIVE BOTTOM-CENTER FREESTYLE COMBO ENGINE BAR -->
+        <div id="combo-live-box" class="combo-live-box hidden">
+          <div id="combo-active-trick" class="combo-active-trick"></div>
+          <div id="combo-chain-trail" class="combo-chain-trail"></div>
+          <div class="combo-bank-row">
+            <span id="combo-bank-pts" class="combo-bank-pts tabular">0</span>
+            <span id="combo-bank-mult" class="combo-bank-mult tabular">×1</span>
+          </div>
+          <div class="combo-timer-track">
+            <div id="combo-timer-fill" class="combo-timer-fill"></div>
+          </div>
+        </div>
+
+        <!-- Pointer-lock gentle prompt if user unlocked cursor during play -->
+        <div id="pointer-hint" class="pointer-hint hidden">
+          Кликни по экрану для обзора мышью · Q / E — взгляд по сторонам
+        </div>
+
+        <!-- Bottom Left: Speedometer, Stance & Jump Charge -->
+        <div class="hud-bottom-left">
+          <div class="speed-block">
+            <div class="speed-row">
+              <span id="hud-speed" class="speed-value tabular">0</span>
+              <div class="speed-meta">
+                <span class="speed-unit">км/ч</span>
+                <span id="hud-stance" class="stance-tag">Спуск</span>
+              </div>
+            </div>
+            <div class="jump-charge-track" id="jump-charge-wrap">
+              <div id="jump-charge-fill" class="jump-charge-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Right: Alpine Stopwatch, Score, Unique Tricks & Key hints -->
+        <div class="hud-bottom-right">
+          <div class="telemetry-panel">
+            <div class="telemetry-row">
+              <span class="telemetry-label">Время</span>
+              <span id="hud-time" class="telemetry-val tabular">00:00.00</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Очки</span>
+              <span id="hud-score" class="telemetry-val tabular accent-gold">0</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Уник. трюки</span>
+              <span id="hud-unique" class="telemetry-val tabular">0</span>
+              <span id="hud-combo" class="combo-badge hidden">×2</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Ворота</span>
+              <span id="hud-gates" class="telemetry-val tabular">0 / 28</span>
+            </div>
+          </div>
+
+          <div id="hud-keyhints" class="keyhints-strip">
+            <span><kbd>W</kbd><kbd>S</kbd><kbd>A</kbd><kbd>D</kbd> Сальто / Корк</span>
+            <span><kbd>F</kbd><kbd>G</kbd><kbd>Z</kbd><kbd>X</kbd><kbd>V</kbd><kbd>B</kbd><kbd>T</kbd> Грэбы и Баттеры</span>
+            <span><kbd>Space</kbd> Прыжок</span>
+            <span><kbd>Tab</kbd> Все трюки</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TITLE SCREEN OVERLAY (floats cleanly over live 3D alpine summit) -->
+      <section id="screen-title" class="overlay overlay-title">
+        <div class="title-panel">
+          <div class="brand-kicker">Альпийский фристайл · 1 000+ комбо трюков</div>
+          <h1 class="brand-title">ВЫСОТА 3400</h1>
+          <p class="brand-desc">
+            3D-спуск от первого лица: 22 трамплина, сальто, корки, родео, 10 грэбов в полёте,
+            фристайл-баттеры на снегу и свободный обзор головой.
+          </p>
+
+          <div class="setup-group">
+            <div class="setup-label">Освещение склона</div>
+            <div class="segmented" id="title-lighting">
+              <button type="button" class="seg-btn active" data-preset="morning">Утро</button>
+              <button type="button" class="seg-btn" data-preset="sunset">Закат</button>
+              <button type="button" class="seg-btn" data-preset="twilight">Сумерки</button>
+            </div>
+          </div>
+
+          <div class="setup-group">
+            <div class="setup-label">Управление мышью</div>
+            <div class="segmented" id="title-lookmode">
+              <button type="button" class="seg-btn active" data-look="free">Свободный обзор</button>
+              <button type="button" class="seg-btn" data-look="steer">Поворот за взглядом</button>
+            </div>
+          </div>
+
+          <div class="controls-grid">
+            <div class="ctrl-item"><kbd>W</kbd><kbd>S</kbd><kbd>A</kbd><kbd>D</kbd><span>В воздухе: сальто, спины, корк, родео</span></div>
+            <div class="ctrl-item"><kbd>F</kbd><kbd>G</kbd><kbd>Z</kbd><kbd>X</kbd><kbd>V</kbd><kbd>B</kbd><kbd>T</kbd><span>10 грэбов в воздухе и 5 баттеров на снегу</span></div>
+            <div class="ctrl-item"><kbd>Space</kbd><span>Зажать и отпустить — прыжок / Нолли</span></div>
+            <div class="ctrl-item"><kbd>Shift</kbd> / <kbd>Клик</kbd><span>Мьют, Метод и Окто-грэб в полёте</span></div>
+            <div class="ctrl-item"><kbd>Мышь</kbd> / <kbd>Q</kbd><kbd>E</kbd><span>Свободный обзор по сторонам</span></div>
+            <div class="ctrl-item"><kbd>Tab</kbd> / <kbd>1</kbd>-<kbd>3</kbd><span>Книга трюков / Погода и тени</span></div>
+          </div>
+
+          <div class="title-actions">
+            <button id="btn-start" class="btn-primary" type="button">Начать спуск</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAUSE OVERLAY -->
+      <section id="screen-pause" class="overlay overlay-center hidden">
+        <div class="modal-card">
+          <div class="modal-eyebrow">Спуск приостановлен</div>
+          <h2 class="modal-title">Пауза</h2>
+
+          <div class="setup-group">
+            <div class="setup-label">Освещение</div>
+            <div class="segmented" id="pause-lighting">
+              <button type="button" class="seg-btn active" data-preset="morning">Утро</button>
+              <button type="button" class="seg-btn" data-preset="sunset">Закат</button>
+              <button type="button" class="seg-btn" data-preset="twilight">Сумерки</button>
+            </div>
+          </div>
+
+          <div class="setup-group">
+            <div class="setup-label">Мышь</div>
+            <div class="segmented" id="pause-lookmode">
+              <button type="button" class="seg-btn active" data-look="free">Свободный обзор</button>
+              <button type="button" class="seg-btn" data-look="steer">Поворот за взглядом</button>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-resume" class="btn-primary" type="button">Продолжить</button>
+            <button id="btn-pause-restart" class="btn-secondary" type="button">Сначала</button>
+            <button id="btn-pause-menu" class="btn-ghost" type="button">Главное меню</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINISH SCOREBOARD OVERLAY -->
+      <section id="screen-finish" class="overlay overlay-center hidden">
+        <div class="modal-card finish-card">
+          <div id="finish-medal" class="medal-pill">Золотой спуск</div>
+          <h2 class="modal-title">Финиш · 1 850 м</h2>
+
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <span class="stat-label">Итоговый счёт</span>
+              <strong id="fin-score" class="stat-num tabular accent-gold">0</strong>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">Лучшее комбо</span>
+              <strong id="fin-bestcombo" class="stat-num tabular">0</strong>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">Уникальных трюков</span>
+              <strong id="fin-unique" class="stat-num tabular">0</strong>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">Время спуска</span>
+              <strong id="fin-time" class="stat-num tabular">00:00.00</strong>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">Макс. скорость</span>
+              <strong id="fin-topspeed" class="stat-num tabular">0 км/ч</strong>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">Рекорд полёта</span>
+              <strong id="fin-air" class="stat-num tabular">0.0 с</strong>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-finish-restart" class="btn-primary" type="button">Новый спуск</button>
+            <button id="btn-finish-menu" class="btn-secondary" type="button">В меню</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </body>
+</html>
